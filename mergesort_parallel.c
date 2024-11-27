@@ -3,8 +3,9 @@
 #include <time.h>
 #include <omp.h>
 
-// #define INPUT_LENGTH 100000000
+#define INPUT_LENGTH 100000000
 #define THRESHOLD 1000
+#define NUMBER_OF_THREADS 8
 
 void merge(int *arr, int left, int mid, int right)
 {
@@ -87,49 +88,50 @@ void mergeSort(int *arr, int left, int right)
 
 int main()
 {
-    int INPUT_LENGTH = 100;
-    for (int i = 0; i < 4; i++)
+    // int INPUT_LENGTH = 100;
+    // for (int i = 0; i < 4; i++)
+    // {
+
+    double wt1, wt2;
+
+    srand(time(NULL));
+
+    int *arr = malloc((sizeof(int)) * INPUT_LENGTH);
+
+    for (int i = 0; i < INPUT_LENGTH; i++)
     {
-
-        double wt1, wt2;
-
-        srand(time(NULL));
-
-        int *arr = malloc((sizeof(int)) * INPUT_LENGTH);
-
-        for (int i = 0; i < INPUT_LENGTH; i++)
-        {
-            arr[i] = rand() % INPUT_LENGTH;
-        }
-
-        wt1 = omp_get_wtime();
-
-#pragma omp parallel
-        {
-#pragma omp single
-            mergeSort(arr, 0, INPUT_LENGTH - 1);
-        }
-
-        wt2 = omp_get_wtime();
-
-        for (int i = 1; i < INPUT_LENGTH; i++)
-        {
-            if (arr[i] >= arr[i - 1])
-            {
-                continue;
-            }
-            else
-            {
-                printf("The sorting is wrong");
-                break;
-            }
-        }
-
-        printf("\nTotal time: %12.4g sec\n", wt2 - wt1);
-
-        free(arr);
-        INPUT_LENGTH = INPUT_LENGTH * 100;
+        arr[i] = rand() % INPUT_LENGTH;
     }
+
+    wt1 = omp_get_wtime();
+
+#pragma omp parallel num_threads(NUMBER_OF_THREADS)
+    {
+#pragma omp single
+        mergeSort(arr, 0, INPUT_LENGTH - 1);
+    }
+
+    wt2 = omp_get_wtime();
+
+    // for (int i = 1; i < INPUT_LENGTH; i++)
+    // {
+    //     if (arr[i] >= arr[i - 1])
+    //     {
+    //         continue;
+    //     }
+    //     else
+    //     {
+    //         printf("The sorting is wrong");
+    //         break;
+    //     }
+    // }
+    printf("\nTotal threads: %d \n", NUMBER_OF_THREADS);
+    printf("Size of array: %d", INPUT_LENGTH);
+    printf("\nTotal time: %12.4g sec\n", wt2 - wt1);
+
+    free(arr);
+    //     INPUT_LENGTH = INPUT_LENGTH * 100;
+    // }
 
     return 0;
 }
