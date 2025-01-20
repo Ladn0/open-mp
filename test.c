@@ -1,81 +1,128 @@
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <omp.h>
+#include <stdbool.h>
+#include <locale.h>
 
-#define ARRAY_SIZE 1000
+#define SIZE 10000000 // 10 million
+#define THRESHOLD 20000
+#define parallel true
 
-int main(void)
+void q_sort(int *arr, int start_index, int end_index)
 {
-    // Declaring an array to hold random numbers of the size of ARRAY_SIZE.
-    int array[ARRAY_SIZE];
-
-    // Initializing the random number generator for the array
-    srand(time(NULL));
-
-    // Populating the array with random numbers
-    for (int i = 0; i < ARRAY_SIZE; i++)
+    if (start_index >= end_index)
     {
-        array[i] = rand() % 10; // Generating random number 1-10
+        return; // Base case: array has one or zero elements
     }
 
-    // Printing the original array
-    // printf("Original array: \n");
-    // for (int i = 0; i < ARRAY_SIZE; i++)
-    // {
-    //     printf("%d ", array[i]);
-    // }
-    // printf("\n");
+    int pivot = end_index;
 
-    double start_time = omp_get_wtime(); // Start timing
-    // Implementing bubble sort
-    for (int i = 0; i < ARRAY_SIZE - 1; i++)
+    int replace_index = start_index;
+
+    for (int i = start_index; i < end_index; i++)
     {
-// Parallelizing the even-indexed comparisons
-#pragma omp parallel for
-        for (int j = 0; j < ARRAY_SIZE - i - 1; j += 2)
+        if (arr[i] < arr[pivot])
         {
-            if (array[j] > array[j + 1])
+            int tmp = arr[i];
+            arr[i] = arr[replace_index];
+            arr[replace_index] = tmp;
+            replace_index++;
+        }
+    }
+
+    int tmp = arr[pivot];
+    arr[pivot] = arr[replace_index];
+    arr[replace_index] = tmp;
+
+    q_sort(arr, start_index, replace_index - 1);
+    q_sort(arr, replace_index + 1, end_index);
+}
+
+void q_sort_parallel(int *arr, int start_index, int end_index)
+{
+    if (start_index >= end_index)
+    {
+        return; // Base case: array has one or zero elements
+    }
+
+    int pivot = end_index;
+
+    int replace_index = start_index;
+
+    for (int i = start_index; i < end_index; i++)
+    {
+        if (arr[i] < arr[pivot])
+        {
+            int tmp = arr[i];
+            arr[i] = arr[replace_index];
+            arr[replace_index] = tmp;
+            replace_index++;
+        }
+    }
+
+    int tmp = arr[pivot];
+    arr[pivot] = arr[replace_index];
+    arr[replace_index] = tmp;
+
+    if (end_index - start_index > THRESHOLD)
+    {
+#pragma omp task
+        q_sort_parallel(arr, start_index, replace_index - 1);
+
+#pragma omp task
+        q_sort_parallel(arr, replace_index + 1, end_index);
+
+        // #pragma omp taskwait
+    }
+    else
+    {
+        q_sort_parallel(arr, start_index, replace_index - 1);
+        q_sort_parallel(arr, replace_index + 1, end_index);
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    // To measure time
+    double wt1, wt2;
+
+    int *nums = (int *)malloc(SIZE * sizeof(int));
+
+    srand(time(0));
+
+    for (int i = 0; i < SIZE; i++)
+    {
+        nums[i] = rand() % 2001 - 1000; // Random numbers range [-1000, 1000]
+    }
+
+    wt1 = omp_get_wtime();
+
+    int last_index = SIZE - 1;
+
+    if (parallel)
+    {
+// For parallel excecution
+#pragma omp parallel
+        {
+#pragma omp single
             {
-                int temp = array[j];
-                array[j] = array[j + 1];
-                array[j + 1] = temp;
+                q_sort_parallel(nums, 0, last_index);
             }
         }
-
-// Parallelizing the odd-indexed comparisons
-#pragma omp parallel for
-        for (int j = 1; j < ARRAY_SIZE - i - 1; j += 2)
-        {
-            if (array[j] > array[j + 1])
-            {
-                int temp = array[j];
-                array[j] = array[j + 1];
-                array[j + 1] = temp;
-            }
-        }
     }
-    double end_time = omp_get_wtime(); // End timing
-
-    for (int i = 1; i < ARRAY_SIZE; i++)
+    else
     {
-        if (array[i] >= array[i - 1])
-        {
-            continue;
-        }
-        else
-        {
-            printf("The sorting is wrong");
-            break;
-        }
+        // For serial execution
+        q_sort(nums, 0, last_index);
     }
 
-    // Printing the sorted array
-    // printf("Sorted array: \n");
-    // for (int i = 0; i < ARRAY_SIZE; i++)
-    // {
-    //     printf("%d ", array[i]);
-    // }
-    printf("\n");
-    printf("Time taken (parallel): %f seconds\n", end_time - start_time);
+    free(nums);
+
+    wt2 = omp_get_wtime();
+
+    setlocale(LC_NUMERIC, "");
+    printf("%'d : \t\t %12.4g sec\n", SIZE, wt2 - wt1);
+
+    return 0;
 }

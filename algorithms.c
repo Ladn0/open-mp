@@ -3,8 +3,9 @@
 #include <time.h>
 #include <omp.h>
 
-#define INPUT_LENGTH 100000
-#define THRESHOLD 1000
+#define INPUT_LENGTH 10000000
+#define THRESHOLD 2000
+#define THRESHOLD_MERGESORT 1000
 #define NUMBER_OF_THREADS 8
 
 // CODE BY Artem Anufriyev
@@ -65,7 +66,7 @@ void mergeSortParallel(int *arr, int left, int right)
     {
         int mid = left + (right - left) / 2;
 
-        if (right - left > THRESHOLD)
+        if (right - left > THRESHOLD_MERGESORT)
         {
 #pragma omp task shared(arr)
             mergeSortParallel(arr, left, mid);
@@ -205,6 +206,81 @@ void parallel_bubble_sort(int *x, int size)
     }
 }
 
+// CODE BY Azamat Afzalov
+
+void q_sort(int *arr, int start_index, int end_index)
+{
+    if (start_index >= end_index)
+    {
+        return; // Base case: array has one or zero elements
+    }
+
+    int pivot = end_index;
+
+    int replace_index = start_index;
+
+    for (int i = start_index; i < end_index; i++)
+    {
+        if (arr[i] < arr[pivot])
+        {
+            int tmp = arr[i];
+            arr[i] = arr[replace_index];
+            arr[replace_index] = tmp;
+            replace_index++;
+        }
+    }
+
+    int tmp = arr[pivot];
+    arr[pivot] = arr[replace_index];
+    arr[replace_index] = tmp;
+
+    q_sort(arr, start_index, replace_index - 1);
+    q_sort(arr, replace_index + 1, end_index);
+}
+
+void q_sort_parallel(int *arr, int start_index, int end_index)
+{
+    if (start_index >= end_index)
+    {
+        return; // Base case: array has one or zero elements
+    }
+
+    int pivot = end_index;
+
+    int replace_index = start_index;
+
+    for (int i = start_index; i < end_index; i++)
+    {
+        if (arr[i] < arr[pivot])
+        {
+            int tmp = arr[i];
+            arr[i] = arr[replace_index];
+            arr[replace_index] = tmp;
+            replace_index++;
+        }
+    }
+
+    int tmp = arr[pivot];
+    arr[pivot] = arr[replace_index];
+    arr[replace_index] = tmp;
+
+    if (end_index - start_index > THRESHOLD)
+    {
+#pragma omp task
+        q_sort_parallel(arr, start_index, replace_index - 1);
+
+#pragma omp task
+        q_sort_parallel(arr, replace_index + 1, end_index);
+
+        // #pragma omp taskwait
+    }
+    else
+    {
+        q_sort_parallel(arr, start_index, replace_index - 1);
+        q_sort_parallel(arr, replace_index + 1, end_index);
+    }
+}
+
 int main()
 {
 
@@ -242,6 +318,22 @@ int main()
     //--BUBBLESORT PARALLEL - Sanish Shyam
 
     // parallel_bubble_sort(arr, INPUT_LENGTH);
+
+    int last_index = INPUT_LENGTH - 1;
+
+    //--QUICKSORT SERIAL - Azamat Afzalov
+
+    // q_sort(arr, 0, last_index);
+
+    //--QUICKSORT PARALLEL - Azamat Afzalov
+
+#pragma omp parallel
+    {
+#pragma omp single
+        {
+            q_sort_parallel(arr, 0, last_index);
+        }
+    }
 
     wt2 = omp_get_wtime();
 

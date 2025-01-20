@@ -88,9 +88,6 @@ void mergeSort(int *arr, int left, int right)
 
 int main()
 {
-    // int INPUT_LENGTH = 100;
-    // for (int i = 0; i < 4; i++)
-    // {
 
     double wt1, wt2;
 
@@ -113,25 +110,11 @@ int main()
 
     wt2 = omp_get_wtime();
 
-    // for (int i = 1; i < INPUT_LENGTH; i++)
-    // {
-    //     if (arr[i] >= arr[i - 1])
-    //     {
-    //         continue;
-    //     }
-    //     else
-    //     {
-    //         printf("The sorting is wrong");
-    //         break;
-    //     }
-    // }
     printf("\nTotal threads: %d \n", NUMBER_OF_THREADS);
     printf("Size of array: %d", INPUT_LENGTH);
     printf("\nTotal time: %12.4g sec\n", wt2 - wt1);
 
     free(arr);
-    //     INPUT_LENGTH = INPUT_LENGTH * 100;
-    // }
 
     return 0;
 }
